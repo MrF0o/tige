@@ -87,4 +87,6 @@ bool handle_save_sp(VM *vm);
 
 bool handle_reset_sp(VM *vm);
 
+bool handle_inc_reg(VM* vm);
+
 #endif //TIGE_OP_HANDLERS_H

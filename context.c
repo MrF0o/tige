@@ -87,7 +87,7 @@ bool ctx_check_errors(Context *context) {
 
 void ctx_start_parsing(Context *context) {
     auto ast = parse(context);
-
+    auto body = ast->block.statements[1]->for_stmt.body;
     if (ast) {
         context->ast = ast;
         context->code = compile_ast(ast, context);

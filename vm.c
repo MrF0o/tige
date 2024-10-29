@@ -62,6 +62,8 @@ static OpcodeHandler opcode_handlers[256] = {
         [OP_SAVE_SP]         = handle_save_sp,
         [OP_RESET_SP]        = handle_reset_sp,
 
+        [OP_INC_REG]         = handle_inc_reg,
+
         [OP_HALT]            = handle_halt,            // 0xFF
         // All other opcodes remain NULL by default
 };

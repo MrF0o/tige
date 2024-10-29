@@ -67,6 +67,9 @@ typedef enum {
     OP_SAVE_SP = 0xF4,
     OP_RESET_SP = 0xF5,
 
+    OP_INC_REG = 0x21,
+    OP_DEC_REG = 0x22,
+
     // Halt Execution
     OP_HALT = 0xFF,
 

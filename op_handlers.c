@@ -716,7 +716,7 @@ bool handle_exit_scope(VM *vm) {
 }
 
 bool handle_pop(VM *vm) {
-    // pop_vm(vm);
+    pop_vm(vm);
     return true;
 }
 
@@ -732,6 +732,17 @@ bool handle_save_sp(VM *vm) {
 bool handle_reset_sp(VM *vm) {
     // for (int i = vm->sp; i <= vm->sp_reset; i--) pop_vm(vm);
     vm->sp = vm->sp_reset;
+    return true;
+}
+
+bool handle_inc_reg(VM *vm) {
+    uint16_t variable_index = vm_read_uint16(vm);
+    Value val = vm->registers[variable_index];
+
+    if (val.type == VAL_INT) {
+        ((vm->registers) + variable_index)->as_integer++;
+    }
+
     return true;
 }
 

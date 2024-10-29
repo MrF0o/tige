@@ -21,6 +21,9 @@ set(RELEASE_OPTIONS
         -Werror
         -march=native
         -flto
+        -ffast-math
+        -fno-unroll-loops
+        -fprofile-use
 )
 
 add_compile_definitions(LEXER_DEBUG)

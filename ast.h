@@ -179,6 +179,8 @@ ASTNode *create_block(ASTNode **statements, size_t count);
 
 ASTNode* create_if_stmt(ASTNode* condition, ASTNode* then_branch, ASTNode* else_branch);
 
+ASTNode* create_expression_stmt(ASTNode* expression);
+
 ASTNode* create_fn_decl_stmt(char* name, ASTNodeList* params, ASTNode* body);
 
 #endif //TIGE_AST_H

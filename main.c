@@ -236,8 +236,8 @@ int main(int argc, char *argv[]) {
             vm_swap_code_buffer(vm, buffer);
             auto value = vm_execute(vm);
         }
-        printf("\n\n##disassembly##\n\n");
-        disassemble_bytecode(buffer);
+        // printf("\n\n##disassembly##\n\n");
+        // disassemble_bytecode(buffer);
         return 0;
     }
 

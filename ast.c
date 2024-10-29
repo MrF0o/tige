@@ -254,3 +254,10 @@ ASTNode *create_fn_decl_stmt(char *name, ASTNodeList *params, ASTNode *body) {
     node->fn_decl_stmt.body = body;
     return node;
 }
+
+ASTNode *create_expression_stmt(ASTNode *expression) {
+    ASTNode *node = create_ast(AST_EXPRESSION_STMT, nullptr);
+    node->expression_stmt.expression = expression;
+
+    return node;
+}

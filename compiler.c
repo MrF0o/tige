@@ -8,7 +8,7 @@
 
 typedef uint16_t Reg;
 
-static Context* gcontext;
+static Context *gcontext;
 static size_t current_offset = 0;
 
 void compile_node(ASTNode *node, BytecodeBuffer *buffer) {
@@ -86,7 +86,7 @@ void compile_fn_decl(BytecodeBuffer *buffer, ASTNode *node) {
 }
 
 // Compile the entire AST
-BytecodeBuffer *compile_ast(ASTNode *node, Context* context) {
+BytecodeBuffer *compile_ast(ASTNode *node, Context *context) {
     gcontext = context;
     BytecodeBuffer *buffer = bc_buffer_create();
 
@@ -129,7 +129,7 @@ void compile_string(BytecodeBuffer *buffer, ASTNode *node) {
 
 /// Compile Symbol AST Node
 void compile_symbol(BytecodeBuffer *buffer, ASTNode *node) {
-    Symbol* sym = lookup_symbol(gcontext->symbols, node->value->str_value);
+    Symbol *sym = lookup_symbol(gcontext->symbols, node->value->str_value);
 
     if (sym) {
         if (sym->type == SYMBOL_VARIABLE) {
@@ -291,8 +291,12 @@ void compile_assign(BytecodeBuffer *buffer, ASTNode *node) {
 /// Compile Expression Statement AST Node
 void compile_expression_statement(BytecodeBuffer *buffer, ASTNode *node) {
     compile_node(node->expression_stmt.expression, buffer);
-    // Optionally, pop the result if not needed
-    // For simplicity, we'll leave it on the stack
+
+    if (node->expression_stmt.expression->type != AST_RETURN
+        && node->expression_stmt.expression->type != AST_ASSIGN) {
+        // Optionally, pop the result if not needed
+        bc_emit_opcode(buffer, OP_POP);
+    }
 }
 
 /// Compile Block AST Node
@@ -358,7 +362,7 @@ void compile_loop(BytecodeBuffer *buffer, ASTNode *node) {
 void compile_for(BytecodeBuffer *buffer, ASTNode *node) {
     // Enter a new scope for the loop
     enter_scope(gcontext->symbols);
-    bc_emit_opcode(buffer, OP_SAVE_SP);
+    // bc_emit_opcode(buffer, OP_SAVE_SP);
 
     // Assign a register index for the loop variable
     add_symbol(gcontext->symbols, node->for_stmt.identifier, SYMBOL_VARIABLE);
@@ -396,10 +400,7 @@ void compile_for(BytecodeBuffer *buffer, ASTNode *node) {
     compile_node(node->for_stmt.body, buffer);
 
     // Increment the loop variable
-    bc_emit_opcode_with_uint16(buffer, OP_LOAD_VAR, symbol->data.variable.index);
-    bc_emit_opcode_with_int(buffer, OP_LOAD_CONST_INT, 1);
-    bc_emit_opcode(buffer, OP_ADD);
-    bc_emit_opcode_with_uint16(buffer, OP_STORE_VAR, symbol->data.variable.index);
+    bc_emit_opcode_with_uint16(buffer, OP_INC_REG, symbol->data.variable.index);
 
     // Jump back to the loop start
     bc_emit_opcode_with_jump(buffer, OP_JMP, loop_start_chunk_id, loop_start_offset);
@@ -410,7 +411,7 @@ void compile_for(BytecodeBuffer *buffer, ASTNode *node) {
     bc_backpatch_jump(exit_jump, loop_end_chunk_id, loop_end_offset);
 
     // Exit the loop scope
-    bc_emit_opcode(buffer, OP_RESET_SP);
+    // bc_emit_opcode(buffer, OP_RESET_SP);
     exit_scope(gcontext->symbols);
 }
 

@@ -215,7 +215,8 @@ ASTNode *parse_decl_stmt(Parser *parser) {
 ASTNode *parse_expression_stmt(Parser *parser) {
     ASTNode *expr = parse_expression(parser);
     expect(parser, TOKEN_SEMICOLON);
-    return expr;
+    // need to wrap this in an expression_stmt since we will need it in the compilation
+    return create_expression_stmt(expr);
 }
 
 ASTNode *parse_block_stmt(Parser *parser) {
