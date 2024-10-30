@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <memory.h>
 
+static VM *g_vm = nullptr;
+
 static OpcodeHandler opcode_handlers[256] = {
         [OP_NOPE]            = handle_nop,             // 0x00
         [OP_LOAD_CONST_INT]  = handle_load_const_int,  // 0x01
@@ -80,6 +82,17 @@ VM *create_vm(Context *context) {
     vm->context = context;
     vm->ip = 0;
     vm->sp = -1; // Empty stack
+
+    for (int i = 0; i < MAX_REGISTERS; i++) {
+        vm->registers[i] = make_null(); // TODO: change to make_undefined
+    }
+
+    vm->stack = create_stack(STACK_SIZE);
+    vm->heap = create_heap();
+
+    // TODO: GC thread here
+
+    g_vm = vm;
     return vm;
 }
 
@@ -87,26 +100,33 @@ VM *create_vm(Context *context) {
 void destroy_vm(VM *vm) {
     if (vm) {
         free(vm);
+        g_vm = nullptr;
     }
 }
 
 // Push a value onto the stack
-void push(VM *vm, Value value) {
-    if (vm->sp >= STACK_SIZE) {
-        fprintf(stderr, "Stack overflow!\n");
-        exit(1);
+inline void vm_push(VM *vm, Value value) {
+    if (!g_vm) {
+        fprintf(stderr, "VM not initialized.\n");
+        // TODO: handle error
+        exit(EXIT_FAILURE);
     }
-    vm->stack[++vm->sp] = value;
+
+    bool success = push_stack(g_vm->stack, value);
+    // TODO: error handling for non-successful stack operation
 }
 
 // Pop a value from the stack
-Value pop_vm(VM *vm) {
-    if (vm->sp < 0) {
-        fprintf(stderr, "Stack underflow!\n");
-        exit(1);
+inline Value vm_pop(VM *vm) {
+    if (!g_vm) {
+        fprintf(stderr, "VM not initialized.\n");
+        // TODO: handle error
+        exit(EXIT_FAILURE);
     }
-    auto val = vm->stack[vm->sp];
-    vm->stack[vm->sp--] = make_null();
+
+    Value val;
+    bool success = pop_stack(g_vm->stack, &val);
+    // TODO: error handling for non-successful stack operation
     return val;
 }
 
@@ -116,7 +136,7 @@ Value vm_execute(VM *vm) {
         auto op = (Opcode) vm->chunk->bytecode[vm->ip];
         vm->ip++;
         auto handler = opcode_handlers[op];
-        bool continue_execution = handler(vm);
+        bool continue_execution = handler();
 
         if (!continue_execution) {
             break;
@@ -131,7 +151,7 @@ Value vm_execute(VM *vm) {
     }
 
     if (vm->sp >= 0) {
-        return pop_vm(vm);
+        return vm_pop(vm);
     }
 
     return make_null();
@@ -210,4 +230,8 @@ uint16_t vm_read_uint16(VM *vm) {
     memcpy(&value, vm->chunk->bytecode + vm->ip, sizeof(uint16_t));
     vm->ip += sizeof(uint16_t);
     return value;
+}
+
+inline VM *get_vm(void) {
+    return g_vm;
 }

@@ -36,7 +36,6 @@ add_executable(tige main.c
         context.c
         error.c
         symbol_table.c
-        memory.h
         memory.c
         compiler.c
         bytecode_buffer.c

@@ -11,7 +11,8 @@
 // TODO: we need a better way to read from memory structured values (eg, uint64_t, double, strings)
 
 // Handler for OP_LOAD_CONST
-bool handle_load_const_int(VM *vm) {
+inline bool handle_load_const_int(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(int32_t) > vm->chunk->size) {
         fprintf(stderr, "Unexpected end of chunk during LOAD_CONST.\n");
         return false;
@@ -20,60 +21,41 @@ bool handle_load_const_int(VM *vm) {
     memcpy(&value, &vm->chunk->bytecode[vm->ip], sizeof(int64_t));
     vm->ip += sizeof(int64_t);
     Value val = make_int(value);
-    push(vm, val);
+    vm_push(vm, val);
     return true;
 }
 
 // Handler for OP_LOAD_STRING
-bool handle_load_string(VM *vm) {
-    if (vm->ip + sizeof(int32_t) > vm->size) {
-        fprintf(stderr, "Unexpected end of bytecode during LOAD_STRING.\n");
-        return false;
-    }
-    int32_t length;
-    memcpy(&length, &vm->bytecode[vm->ip], sizeof(int32_t));
-    vm->ip += sizeof(int32_t);
-
-    if (vm->ip + length > vm->size) {
-        fprintf(stderr, "Unexpected end of bytecode during LOAD_STRING data.\n");
-        return false;
-    }
-
-    char *chars = (char *) malloc(length + 1);
-    if (!chars) {
-        fprintf(stderr, "Failed to allocate memory for string characters.\n");
-        return false;
-    }
-    memcpy(chars, &vm->bytecode[vm->ip], length);
-    chars[length] = '\0';
-    vm->ip += length;
-
-    Value val = make_string(chars);
-    push(vm, val);
+inline bool handle_load_string(void) {
+    // TODO
+    uimplemented();
     return true;
 }
 
 // Handler for OP_LOAD_BOOL
-bool handle_load_bool(VM *vm) {
+inline bool handle_load_bool(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(uint8_t) > vm->chunk->size) {
         fprintf(stderr, "Unexpected end of bytecode during LOAD_BOOL.\n");
         return false;
     }
     uint8_t val = vm->chunk->bytecode[vm->ip++];
     Value bool_val = make_bool(val != 0);
-    push(vm, bool_val);
+    vm_push(vm, bool_val);
     return true;
 }
 
 // Handler for OP_ADD
-bool handle_add(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_add(void) {
+    auto vm = get_vm();
+
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for ADD operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     Value result;
 
@@ -89,20 +71,22 @@ bool handle_add(VM *vm) {
         return false;
     }
 
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_SUB
-bool handle_sub(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_sub(void) {
+    auto vm = get_vm();
+
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for SUB operation.\n");
         return false;
     }
 
     Value a, b;
-    b = pop_vm(vm);
-    a = pop_vm(vm);
+    b = vm_pop(vm);
+    a = vm_pop(vm);
 
     Value result;
 
@@ -120,20 +104,21 @@ bool handle_sub(VM *vm) {
         return false;
     }
 
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_MUL
-bool handle_mul(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_mul(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for SUB operation.\n");
         return false;
     }
 
     Value a, b;
-    b = pop_vm(vm);
-    a = pop_vm(vm);
+    b = vm_pop(vm);
+    a = vm_pop(vm);
 
     Value result;
 
@@ -151,19 +136,20 @@ bool handle_mul(VM *vm) {
         return false;
     }
 
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_DIV
-bool handle_div(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_div(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for DIV operugh values on stack for DIV operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     Value result;
 
@@ -187,19 +173,20 @@ bool handle_div(VM *vm) {
         return false;
     }
 
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_AND
-bool handle_and(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_and(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for AND operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     if (a.type != VAL_BOOL || b.type != VAL_BOOL) {
         fprintf(stderr, "AND operation requires two booleans.\n");
@@ -207,19 +194,20 @@ bool handle_and(VM *vm) {
     }
 
     Value result = make_bool(a.as_boolean && b.as_boolean);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_OR
-bool handle_or(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_or(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for OR operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     if (a.type != VAL_BOOL || b.type != VAL_BOOL) {
         fprintf(stderr, "OR operation requires two booleans.\n");
@@ -227,18 +215,19 @@ bool handle_or(VM *vm) {
     }
 
     Value result = make_bool(a.as_boolean || b.as_boolean);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_NOT
-bool handle_not(VM *vm) {
-    if (vm->sp < 0) {
+bool handle_not(void) {
+    auto vm = get_vm();
+    if (SP < 0) {
         fprintf(stderr, "Not enough values on stack for NOT operation.\n");
         return false;
     }
 
-    Value a = pop_vm(vm);
+    Value a = vm_pop(vm);
 
     if (a.type != VAL_BOOL) {
         fprintf(stderr, "NOT operation requires a boolean.\n");
@@ -246,19 +235,21 @@ bool handle_not(VM *vm) {
     }
 
     Value result = make_bool(!a.as_boolean);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_EQUAL
-bool handle_equal(VM *vm) {
-    if (vm->sp < 1) {
+inline bool handle_equal(void) {
+    auto vm = get_vm();
+
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for EQUAL operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     bool is_equal = false;
 
@@ -287,19 +278,20 @@ bool handle_equal(VM *vm) {
     }
 
     Value result = make_bool(is_equal);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_NOT_EQUAL
-bool handle_not_equal(VM *vm) {
-    if (vm->sp < 1) {
+bool handle_not_equal(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for NOT_EQUAL operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     bool is_not_equal = false;
 
@@ -328,19 +320,20 @@ bool handle_not_equal(VM *vm) {
     }
 
     Value result = make_bool(is_not_equal);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_LESS_THAN
-bool handle_less_than(VM *vm) {
-    if (vm->sp < 1) {
+bool handle_less_than(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for LESS_THAN operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     bool result_bool = false;
 
@@ -357,19 +350,20 @@ bool handle_less_than(VM *vm) {
     }
 
     Value result = make_bool(result_bool);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_GREATER_THAN
-bool handle_greater_than(VM *vm) {
-    if (vm->sp < 1) {
+bool handle_greater_than(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for GREATER_THAN operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     bool result_bool = false;
 
@@ -386,19 +380,20 @@ bool handle_greater_than(VM *vm) {
     }
 
     Value result = make_bool(result_bool);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_LESS_EQUAL
-bool handle_less_equal(VM *vm) {
-    if (vm->sp < 1) {
+bool handle_less_equal(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for LESS_EQUAL operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     bool result_bool = false;
 
@@ -415,19 +410,20 @@ bool handle_less_equal(VM *vm) {
     }
 
     Value result = make_bool(result_bool);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_GREATER_EQUAL
-bool handle_greater_equal(VM *vm) {
-    if (vm->sp < 1) {
+bool handle_greater_equal(void) {
+    auto vm = get_vm();
+    if (SP < 1) {
         fprintf(stderr, "Not enough values on stack for GREATER_EQUAL operation.\n");
         return false;
     }
 
-    Value b = pop_vm(vm);
-    Value a = pop_vm(vm);
+    Value b = vm_pop(vm);
+    Value a = vm_pop(vm);
 
     bool result_bool = false;
 
@@ -444,12 +440,13 @@ bool handle_greater_equal(VM *vm) {
     }
 
     Value result = make_bool(result_bool);
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_JMP
-bool handle_jmp(VM *vm) {
+inline bool handle_jmp(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(size_t) * 2 > vm->chunk->size) {
         fprintf(stderr, "Unexpected end of chunk during JMP.\n");
         return false;
@@ -468,7 +465,8 @@ bool handle_jmp(VM *vm) {
 }
 
 // jump to a region in memory that contains a valid BytecodeChunk
-bool handle_jmp_adr(VM *vm) {
+inline bool handle_jmp_adr(void) {
+    auto vm = get_vm();
     uintptr_t jmp_to = vm_read_ptr(vm);
     // get the chunk addr
     BytecodeChunk *chunk = (BytecodeChunk *) (jmp_to);
@@ -479,7 +477,8 @@ bool handle_jmp_adr(VM *vm) {
 }
 
 // Handler for OP_JMP_IF_TRUE
-bool handle_jmp_if_true(VM *vm) {
+inline bool handle_jmp_if_true(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(size_t) * 2 > vm->chunk->size) {
         fprintf(stderr, "Unexpected end of chunk during JMP_IF_TRUE.\n");
         return false;
@@ -488,11 +487,11 @@ bool handle_jmp_if_true(VM *vm) {
     size_t chunk_id = vm_read_offset(vm);
     size_t jmp_offset = vm_read_offset(vm);
 
-    if (vm->sp < 0) {
+    if (SP < 0) {
         fprintf(stderr, "Not enough values on stack for JMP_IF_TRUE.\n");
         return false;
     }
-    Value condition = pop_vm(vm);
+    Value condition = vm_pop(vm);
     if (condition.type != VAL_BOOL) {
         fprintf(stderr, "JMP_IF_TRUE requires a boolean condition.\n");
         return false;
@@ -508,7 +507,8 @@ bool handle_jmp_if_true(VM *vm) {
 }
 
 // Handler for OP_JMP_IF_FALSE
-bool handle_jmp_if_false(VM *vm) {
+inline bool handle_jmp_if_false(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(size_t) * 2 > vm->chunk->size) {
         fprintf(stderr, "Unexpected end of chunk during JMP_IF_FALSE.\n");
         return false;
@@ -517,11 +517,11 @@ bool handle_jmp_if_false(VM *vm) {
     size_t chunk_id = vm_read_offset(vm);
     size_t jmp_offset = vm_read_offset(vm);
 
-    if (vm->sp < 0) {
+    if (SP < 0) {
         fprintf(stderr, "Not enough values on stack for JMP_IF_FALSE.\n");
         return false;
     }
-    Value condition = pop_vm(vm);
+    Value condition = vm_pop(vm);
     if (condition.type != VAL_BOOL) {
         fprintf(stderr, "JMP_IF_FALSE requires a boolean condition.\n");
         return false;
@@ -537,7 +537,8 @@ bool handle_jmp_if_false(VM *vm) {
 }
 
 // Handler for OP_CALL
-bool handle_call(VM *vm) {
+bool handle_call(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(int32_t) > vm->size) {
         fprintf(stderr, "Unexpected end of bytecode during CALL.\n");
         return false;
@@ -551,27 +552,28 @@ bool handle_call(VM *vm) {
     }
     // Push current ip as return address (stored as VAL_INT)
     Value return_address = make_int(vm->ip);
-    push(vm, return_address);
+    vm_push(vm, return_address);
     // Jump to function address
     vm->ip = func_address;
     return true;
 }
 
 // Handler for OP_RETURN
-bool handle_return(VM *vm) {
-    if (vm->sp < 0) {
+bool handle_return(void) {
+    auto vm = get_vm();
+    if (SP < 0) {
         fprintf(stderr, "Nothing on stack to return.\n");
         return false;
     }
-    Value ret = pop_vm(vm);
-    push(vm, ret);
+    Value ret = vm_pop(vm);
+    vm_push(vm, ret);
     return true;
     // Pop return address
-    if (vm->sp < 0) {
+    if (SP < 0) {
         fprintf(stderr, "No return address on stack.\n");
         return false;
     }
-    Value return_address_val = pop_vm(vm);
+    Value return_address_val = vm_pop(vm);
     if (return_address_val.type != VAL_INT) {
         fprintf(stderr, "RETURN expects an integer return address.\n");
         return false;
@@ -582,61 +584,23 @@ bool handle_return(VM *vm) {
         return false;
     }
     vm->ip = return_address;
-    // Optionally, push the return value back onto the stack
-    push(vm, ret);
+    // Optionally, vm_push the return value back onto the stack
+    vm_push(vm, ret);
     return true;
 }
 
-// Handler for OP_NEW_OBJECT
-bool handle_new_object(VM *vm) {
-    // TODO: Implement object creation
-    fprintf(stderr, "OP_NEW_OBJECT not implemented.\n");
-    return false;
-    return false; // Unreachable
-}
-
-// Handler for OP_GET_PROPERTY
-bool handle_get_property(VM *vm) {
-    // TODO: Implement property retrieval
-    fprintf(stderr, "OP_GET_PROPERTY not implemented.\n");
-    return false;
-    return false; // Unreachable
-}
-
-// Handler for OP_SET_PROPERTY
-bool handle_set_property(VM *vm) {
-    // TODO: Implement property setting
-    fprintf(stderr, "OP_SET_PROPERTY not implemented.\n");
-    return false;
-    return false; // Unreachable
-}
-
-// Handler for OP_ALLOC_HEAP
-bool handle_alloc_heap(VM *vm) {
-    // TODO: Implement heap allocation
-    fprintf(stderr, "OP_ALLOC_HEAP not implemented.\n");
-    return false;
-    return false; // Unreachable
-}
-
-// Handler for OP_FREE_HEAP
-bool handle_free_heap(VM *vm) {
-    // TODO: Implement heap freeing
-    fprintf(stderr, "OP_FREE_HEAP not implemented.\n");
-    return false;
-    return false; // Unreachable
-}
 
 // Handler for OP_TERNARY
-bool handle_ternary(VM *vm) {
-    if (vm->sp < 2) {
+bool handle_ternary(void) {
+    auto vm = get_vm();
+    if (SP < 2) {
         fprintf(stderr, "Not enough values on stack for TERNARY operation.\n");
         return false;
     }
 
-    Value false_val = pop_vm(vm);
-    Value true_val = pop_vm(vm);
-    Value condition = pop_vm(vm);
+    Value false_val = vm_pop(vm);
+    Value true_val = vm_pop(vm);
+    Value condition = vm_pop(vm);
 
     if (condition.type != VAL_BOOL) {
         fprintf(stderr, "TERNARY operation requires a boolean condition.\n");
@@ -644,17 +608,18 @@ bool handle_ternary(VM *vm) {
     }
 
     Value result = condition.as_boolean ? true_val : false_val;
-    push(vm, result);
+    vm_push(vm, result);
     return true;
 }
 
 // Handler for OP_HALT
-bool handle_halt(VM *vm) {
-    if (vm->sp < 0) {
+bool handle_halt(void) {
+    auto vm = get_vm();
+    if (SP < 0) {
         fprintf(stderr, "Nothing on stack to return.\n");
         return false;
     }
-    Value ret = pop_vm(vm);
+    Value ret = vm_pop(vm);
     if (ret.type == VAL_INT) {
         printf("VM Halt with exit code: %lld\n", ret.as_integer);
     } else {
@@ -665,22 +630,25 @@ bool handle_halt(VM *vm) {
 }
 
 // Handler for OP_NOP
-bool handle_nop(VM *vm) {
+bool handle_nop(void) {
     // No operation; simply continue execution
+    get_vm()->ip++;
     return true;
 }
 
 // Handler for OP_STORE_VAR
 // OP_STORE_VAR <index:uint64_t>
 // where index is the index of the variable in the symbol table
-bool handle_store_var(VM *vm) {
+inline bool handle_store_var(void) {
+    auto vm = get_vm();
     uint16_t variable_index = vm_read_uint16(vm);
-    Value val = pop_vm(vm);
+    Value val = vm_pop(vm);
     vm->registers[variable_index] = val;
     return true;
 }
 
-bool handle_load_const_float(VM *vm) {
+inline bool handle_load_const_float(void) {
+    auto vm = get_vm();
     if (vm->ip + sizeof(double) > vm->size) {
         fprintf(stderr, "Unexpected end of bytecode during LOAD_CONST.\n");
         return false;
@@ -690,13 +658,14 @@ bool handle_load_const_float(VM *vm) {
     memcpy(&value, &vm->bytecode[vm->ip], sizeof(double));
     vm->ip += sizeof(double);
     Value val = make_float(value);
-    push(vm, val);
+    vm_push(vm, val);
     return true;
 }
 
-bool handle_load_var(VM *vm) {
+inline bool handle_load_var(void) {
+    auto vm = get_vm();
     uint16_t variable_index = vm_read_uint16(vm);
-    push(vm, vm->registers[variable_index]);
+    vm_push(vm, vm->registers[variable_index]);
     return true;
 }
 
@@ -710,32 +679,33 @@ bool handle_enter_scope(VM *vm) {
     return true;
 }
 
-bool handle_exit_scope(VM *vm) {
-    exit_scope(vm->context->symbols);
+bool handle_exit_scope(void) {
+    exit_scope(get_vm()->context->symbols);
     return true;
 }
 
-bool handle_pop(VM *vm) {
-    pop_vm(vm);
+inline bool handle_pop(VM *vm) {
+    vm_pop(vm);
     return true;
 }
 
-bool handle_push(VM *vm) {
+bool handle_push(void) {
     return false;
 }
 
-bool handle_save_sp(VM *vm) {
-    vm->sp_reset = vm->sp;
+bool handle_save_sp(void) {
+    get_vm()->sp_reset = SP;
     return true;
 }
 
-bool handle_reset_sp(VM *vm) {
-    // for (int i = vm->sp; i <= vm->sp_reset; i--) pop_vm(vm);
-    vm->sp = vm->sp_reset;
+bool handle_reset_sp(void) {
+    // for (int i = SP; i <= vm->sp_reset; i--) vm_pop(vm);
+    SP = get_vm()->sp_reset;
     return true;
 }
 
-bool handle_inc_reg(VM *vm) {
+inline bool handle_inc_reg(void) {
+    auto vm = get_vm();
     uint16_t variable_index = vm_read_uint16(vm);
     Value val = vm->registers[variable_index];
 

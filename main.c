@@ -238,9 +238,7 @@ int main(int argc, char *argv[]) {
         }
         // printf("\n\n##disassembly##\n\n");
         // disassemble_bytecode(buffer);
-        return 0;
     }
-
 
     // Cleanup
     ctx_destroy(&context);
