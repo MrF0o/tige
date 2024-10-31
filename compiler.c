@@ -2,6 +2,9 @@
 #include "symbol_table.h"
 #include "context.h"
 #include "ast_utils.h"
+#include "memory.h"
+#include "vm.h"
+#include "functions.h"
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
@@ -9,7 +12,6 @@
 typedef uint16_t Reg;
 
 static Context *gcontext;
-static size_t current_offset = 0;
 
 void compile_node(ASTNode *node, BytecodeBuffer *buffer) {
     switch (node->type) {
@@ -75,14 +77,50 @@ void compile_node(ASTNode *node, BytecodeBuffer *buffer) {
             break;
         case AST_FN_DECL:
             compile_fn_decl(buffer, node);
+            break;
         default:
-            fprintf(stderr, "Unknown AST node type: %d\n", node->type);
+            fprintf(stderr, "Unknown AST node type: 0x%02x\n", node->type);
             exit(1);
     }
 }
 
 void compile_fn_decl(BytecodeBuffer *buffer, ASTNode *node) {
 
+    char *func_name = node->fn_decl_stmt.identifier;
+    auto arg_list = node->fn_decl_stmt.params;
+    auto argc = node->fn_decl_stmt.params->count;
+    add_function_symbol(gcontext->symbols, func_name, argc);
+    auto fn_sym = lookup_symbol(gcontext->symbols, func_name);
+
+    enter_scope(gcontext->symbols);
+
+    fn_sym->data.function.arg_b = gcontext->symbols->current_scope->variable_index_counter;
+    // define all params
+    for (size_t i = 0; i < argc; ++i) {
+        auto arg_name = arg_list->nodes[i]->value->str_value;
+        add_symbol(gcontext->symbols, arg_name, SYMBOL_VARIABLE);
+    }
+    fn_sym->data.function.arg_e = gcontext->symbols->current_scope->variable_index_counter;
+
+    // do not link function chunk since it's only accessible by calling/jumping to it
+    bc_start_non_linked_chunk(buffer);
+    compile_node(node->fn_decl_stmt.body, buffer);
+    auto chunk = bc_end_non_linked_chunk(buffer);
+    bc_end_non_linked_chunk(buffer);
+
+    Function* function = create_function();
+    function->props = nullptr;
+    function->metadata = nullptr;
+    function->stack = get_vm()->stack;
+    function->arity = argc;
+    function->return_addr.chunk = buffer->current_chunk;
+    function->return_addr.offset = -1;
+    function->chunk = chunk;
+    function->name = strdup(func_name);
+
+    register_function(gcontext, func_name, function);
+
+    exit_scope(gcontext->symbols);
 }
 
 // Compile the entire AST
@@ -447,11 +485,31 @@ void compile_range(BytecodeBuffer *buffer, ASTNode *node) {
 
 /// Compile Call AST Node
 void compile_call(BytecodeBuffer *buffer, ASTNode *node) {
-    // Compile callee and arguments
-    // This requires function management (symbol table)
-    // TODO: Implement function handling and symbol table integration
-    fprintf(stderr, "Function calls not implemented in compiler.\n");
-//    exit(1);
+    Symbol* fn = lookup_symbol(gcontext->symbols, node->call_expr.callee->value->str_value);
+
+    if (!fn) {
+        fprintf(stderr, "Error: Call to an undefined function '%s'", node->call_expr.callee->value->str_value);
+        exit(EXIT_FAILURE);
+    }
+
+    auto argc = node->call_expr.arguments->count;
+    auto arity = fn->data.function.arity;
+    if (argc != arity) {
+        // TODO: proper error handling
+        fprintf(stderr, "Error: '%s' expects %lld argument(s) although %lld provided", fn->name, arity, argc);
+        exit(EXIT_FAILURE);
+    }
+
+    // load the arguments
+    for (uint16_t i = fn->data.function.arg_b; i <= fn->data.function.arg_e; ++i) {
+        bc_emit_opcode_with_uint16(buffer, OP_LOAD_VAR, i);
+    }
+
+    for (size_t i = 0; i < argc; ++i) {
+        compile_node(node->call_expr.arguments->nodes[i], buffer);
+    }
+
+    bc_emit_opcode_with_string(buffer, OP_CALL, fn->name);
 }
 
 /// Compile Variable Declaration AST Node

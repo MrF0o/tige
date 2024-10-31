@@ -38,7 +38,7 @@ static OpcodeHandler opcode_handlers[256] = {
         [OP_JMP_IF_TRUE]     = handle_jmp_if_true,        // 0x12 (to be implemented)
         [OP_JMP_IF_FALSE]    = handle_jmp_if_false,       // 0x13 (to be implemented)
 
-        [OP_CALL]            = nullptr,                // 0x14 (to be implemented)
+        [OP_CALL]            = handle_call,                // 0x14 (to be implemented)
         [OP_RETURN]          = handle_return,          // 0x15
 
         [OP_NEW_OBJECT]      = nullptr,                // 0x16 (to be implemented)
@@ -74,12 +74,13 @@ static OpcodeHandler opcode_handlers[256] = {
 VM *create_vm(Context *context) {
     VM *vm = (VM *) malloc(sizeof(VM));
     // TODO: remove these two lines
-    vm->bytecode = context->code->head->bytecode;
-    vm->size = context->code->head->size;
+    vm->bytecode = nullptr;
+    vm->size = -1;
 
     vm->buffer = context->code;
-    vm->chunk = context->code->head;
+    vm->chunk = nullptr;
     vm->context = context;
+    vm->call_stack = create_call_stack();
     vm->ip = 0;
     vm->sp = -1; // Empty stack
 
@@ -104,6 +105,7 @@ void destroy_vm(VM *vm) {
     }
 }
 
+// TODO: remove the vm argument and use get_vm()
 // Push a value onto the stack
 inline void vm_push(VM *vm, Value value) {
     if (!g_vm) {
@@ -116,6 +118,7 @@ inline void vm_push(VM *vm, Value value) {
     // TODO: error handling for non-successful stack operation
 }
 
+// TODO: remove the vm argument and use get_vm()
 // Pop a value from the stack
 inline Value vm_pop(VM *vm) {
     if (!g_vm) {

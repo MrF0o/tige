@@ -9,6 +9,9 @@
 
 typedef struct Object Object;
 typedef struct ObjectProperty ObjectProperty;
+typedef struct ObjectMetadata ObjectMetadata;
+
+struct ObjectMetadata {};
 
 struct ObjectProperty {
     char* prop_name;
@@ -16,15 +19,16 @@ struct ObjectProperty {
 };
 
 struct ObjectPropMap {
-    struct ObjectProperty** properties;
+    ObjectProperty* properties;
 };
 
 struct Object {
-
+    ObjectMetadata* metadata;
+    ObjectProperty* props;
 };
 
 Object* object_new();
-Object* object_free();
+void object_free(Object* ptr);
 
 // functions are just object without any property or access to this
 Object* make_function();

@@ -37,6 +37,7 @@ void exit_scope(SymbolTable* table);
 // Add a symbol to the current scope
 // Returns the index of the inserted element on success, -1 on failure
 int64_t add_symbol(SymbolTable* table, const char* name, SymbolType type);
+int64_t add_function_symbol(SymbolTable* table, const char* name, size_t arity);
 
 // Lookup a symbol by name (searches from current scope upwards)
 // Returns a pointer to the Symbol if found, NULL otherwise

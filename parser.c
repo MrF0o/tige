@@ -10,7 +10,7 @@
 #include "parser.h"
 #include "context.h"
 
-void parser_init(Parser *parser, Context* context) {
+void parser_init(Parser *parser, Context *context) {
     parser->context = context;
     parser->lexer = &context->lexer;
     parser->token_list = token_list_create(16);
@@ -61,7 +61,7 @@ unsigned char matches(Parser *parser, ...) {
             advance(parser);
             return token_type == TOKEN_EOF;
         }
-        if (token_type == peek(parser)->type) {
+        if ((TokenType) token_type == peek(parser)->type) {
             advance(parser);
             matched = 1;
             break;
@@ -128,33 +128,34 @@ ASTNode *parse_program(Parser *parser) {
     return program;
 }
 
-ASTNode* parse_fn_decl_stmt(Parser* parser) {
+ASTNode *parse_fn_decl_stmt(Parser *parser) {
     expect(parser, TOKEN_IDENTIFIER);
-    char* func_name = strdup(parser->current_token->str_value);
+    char *func_name = strdup(parser->current_token->str_value);
 
     expect(parser, TOKEN_LPAREN);
 
     // Parse parameter list if present
-    ASTNodeList* params = create_ast_node_list();
+    ASTNodeList *params = create_ast_node_list();
 
     do {
         // only id and comma are allowed in param list
         // TODO: dynamic arguments '...'
         if (!MATCH(parser, TOKEN_IDENTIFIER, TOKEN_COMMA)) {
-            expect(parser, TOKEN_RPAREN);
-            return nullptr;
+            if (peek(parser)->type != TOKEN_RPAREN) {
+                return nullptr;
+            }
         }
 
         if (CURRENT(parser, TOKEN_IDENTIFIER)) {
-            char* param_name = strdup(parser->current_token->str_value);
-            ASTNode* param_node = create_ast(AST_SYMBOL, create_string_value(param_name));
+            char *param_name = strdup(parser->current_token->str_value);
+            ASTNode *param_node = create_ast(AST_SYMBOL, create_string_value(param_name));
             ast_node_list_add(params, param_node);
         }
 
     } while (!MATCH(parser, TOKEN_RPAREN));
 
     expect(parser, TOKEN_LBRACE);
-    ASTNode* body = parse_block_stmt(parser);
+    ASTNode *body = parse_block_stmt(parser);
 
     ASTNode *func_node = create_fn_decl_stmt(func_name, params, body);
 
@@ -163,9 +164,9 @@ ASTNode* parse_fn_decl_stmt(Parser* parser) {
 
 ASTNode *parse_var_decl_stmt(Parser *parser) {
     expect(parser, TOKEN_IDENTIFIER);
-    char* id = strdup(parser->current_token->str_value);
+    char *id = strdup(parser->current_token->str_value);
     expect(parser, TOKEN_EQUALS);
-    ASTNode* node = create_ast(AST_VAR_DECL, nullptr);
+    ASTNode *node = create_ast(AST_VAR_DECL, nullptr);
     node->var_decl_expr.identifier = id;
     node->var_decl_expr.value = parse_expression(parser);
     expect(parser, TOKEN_SEMICOLON);
@@ -176,8 +177,7 @@ ASTNode *parse_var_decl_stmt(Parser *parser) {
 ASTNode *parse_statement(Parser *parser) {
     if (MATCH(parser, TOKEN_LET)) {
         return parse_var_decl_stmt(parser);
-    }
-    else if (MATCH(parser, TOKEN_IF)) {
+    } else if (MATCH(parser, TOKEN_IF)) {
         return parse_if_stmt(parser);
     }
     if (MATCH(parser, TOKEN_FOR)) {
@@ -202,11 +202,9 @@ ASTNode *parse_statement(Parser *parser) {
 ASTNode *parse_decl_stmt(Parser *parser) {
     if (MATCH(parser, TOKEN_FN)) {
         return parse_fn_decl_stmt(parser);
-    }
-    else if (MATCH(parser, TOKEN_LET)) {
+    } else if (MATCH(parser, TOKEN_LET)) {
         return parse_var_decl_stmt(parser);
-    }
-    else {
+    } else {
         // todo Namespaces and Classes
         return parse_statement(parser);
     }
@@ -498,20 +496,23 @@ ASTNode *parse_unary_expression(Parser *parser) {
 ASTNode *parse_call_expression(Parser *parser, ASTNode *callee) {
     ASTNodeList *arguments = create_ast_node_list();
 
+    do {
+        ASTNode *param_node = parse_expression(parser);
+
+        if (param_node) {
+            ast_node_list_add(arguments, param_node);
+        } else {
+            break;
+        }
+
+    } while (MATCH(parser, TOKEN_COMMA));
+
     if (!MATCH(parser, TOKEN_RPAREN)) {
-        do {
-            ASTNode *argument = parse_expression(parser);
-            ast_node_list_add(arguments, argument);
-            if (!MATCH(parser, TOKEN_COMMA)) {
-                break;
-            }
-            advance(parser);  // Consume ','
-        } while (true);
+        fprintf(stderr, "Error: Expected closing parenthesis in function call '%s'", callee->value->str_value);
+        exit(EXIT_FAILURE);
     }
 
-    expect(parser, TOKEN_RPAREN);
-
-    ASTNode *node = create_ast(AST_CALL, NULL);
+    ASTNode *node = create_ast(AST_CALL, nullptr);
     node->call_expr.callee = callee;
     node->call_expr.arguments = arguments;
 
@@ -533,7 +534,10 @@ ASTNode *parse_primary_expression(Parser *parser) {
     }
         // TODO: function calls
     else if (MATCH(parser, TOKEN_IDENTIFIER)) {
-        node = create_ast(AST_SYMBOL, create_string_value(parser->current_token->str_value));
+        char* id = parser->current_token->str_value;
+
+        node = create_ast(AST_SYMBOL, create_string_value(id));
+
     } else if (MATCH(parser, TOKEN_LPAREN)) {
         node = parse_expression(parser);
         expect(parser, TOKEN_RPAREN);
@@ -542,14 +546,19 @@ ASTNode *parse_primary_expression(Parser *parser) {
     }
 
     // Call expressions and member access
-    while (MATCH(parser, TOKEN_LPAREN, TOKEN_DOT)) {
-        if (CURRENT(parser, TOKEN_LPAREN)) {
-            node = parse_call_expression(parser, node);
-        } // member access next
-        else if (MATCH(parser, TOKEN_DOT)) {
-            return nullptr;
-        }
+
+    if (MATCH(parser, TOKEN_LPAREN)) {
+        node = parse_call_expression(parser, node);
     }
+
+    // while (MATCH(parser, TOKEN_LPAREN, TOKEN_DOT)) {
+    //     if (CURRENT(parser, TOKEN_LPAREN)) {
+    //         node = parse_call_expression(parser, node);
+    //     } // member access next
+    //     else if (MATCH(parser, TOKEN_DOT)) {
+    //         return nullptr;
+    //     }
+    // }
     // TODO: other primary expressions
 
     return node;

@@ -9,6 +9,24 @@
 #include "value.h"
 #include "object.h"
 #include "bytecode_buffer.h"
+#include "memory.h"
+#include "uthash.h"
+
+
+typedef struct Function Function;
+
+struct Function {
+    ObjectMetadata* metadata;
+    ObjectProperty* props;
+    BytecodeChunk* chunk;
+    char* name;
+    Stack* stack;
+    size_t arity;
+    JumpPlaceholder return_addr;
+    UT_hash_handle hh;
+};
+
+// TODO: Closures
 
 // Structure representing a call frame
 typedef struct CallFrame {
@@ -23,7 +41,9 @@ typedef struct CallStack {
     CallFrame* top;
 } CallStack;
 
-// Function prototypes
+
+Function* create_function();
+void destroy_function(Function* ptr);
 CallStack* create_call_stack();
 void destroy_call_stack(CallStack* stack);
 bool push_call_frame(CallStack* stack, BytecodeChunk* chunk, size_t ip, Value* registers);

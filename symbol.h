@@ -21,20 +21,17 @@ typedef struct Symbol {
         struct {
             char* var_type;
             bool is_initialized;
-            Value value;
             uint16_t index;
         } variable;
 
         // For functions
         struct {
-            char* return_type;
-            // Parameters, etc.
-            // For simplicity, we can add a parameter list later
+            size_t arity;
+            uint16_t arg_b;
+            uint16_t arg_e;
         } function;
-
-        // Future extensions for classes, traits, etc.
     } data;
 
-    struct Symbol* next; // For handling collisions in the hash table
+    struct Symbol* next;
 } Symbol;
 #endif //TIGE_SYMBOL_H

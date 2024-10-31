@@ -73,13 +73,13 @@ bool handle_free_heap(VM *vm);
 
 bool handle_ternary(void);
 
-bool handle_enter_scope(VM *vm);
+bool handle_enter_scope(void);
 
 bool handle_exit_scope(void);
 
 bool handle_push(void);
 
-bool handle_pop(VM *vm);
+bool handle_pop(void);
 
 bool handle_halt(void);
 

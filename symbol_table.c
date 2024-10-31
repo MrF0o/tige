@@ -131,6 +131,35 @@ int64_t add_symbol(SymbolTable* table, const char* name, SymbolType type) {
     return index;
 }
 
+int64_t add_function_symbol(SymbolTable* table, const char* name, size_t arity) {
+    if (!table || !name) return -1;
+    unsigned long index = hash(name);
+    Scope* scope = table->current_scope;
+
+    // Check for duplicate in current scope
+    Symbol* existing = scope->hash_table[index];
+    while (existing) {
+        if (strcmp(existing->name, name) == 0) {
+            fprintf(stderr, "Error: function '%s' already defined.\n", name);
+            return -1;
+        }
+        existing = existing->next;
+    }
+
+    Symbol* new_symbol = (Symbol*)malloc(sizeof(Symbol));
+    if (!new_symbol) {
+        fprintf(stderr, "Error: Memory allocation failed for function.\n");
+        return -1;
+    }
+    new_symbol->name = strdup(name);
+    new_symbol->type = SYMBOL_FUNCTION;
+    new_symbol->data.function.arity = arity;
+    new_symbol->next =  scope->hash_table[index];
+    scope->hash_table[index] = new_symbol;
+
+    return index;
+}
+
 // Lookup a symbol by name (searches from current scope upwards)
 Symbol* lookup_symbol(SymbolTable* table, const char* name) {
     if (!table || !name) return nullptr;

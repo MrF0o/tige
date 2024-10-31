@@ -15,6 +15,7 @@ typedef struct BytecodeChunk {
     size_t capacity;                // Allocated capacity for this chunk
     size_t chunk_id;                // Unique identifier for the chunk
     bool is_linked;
+    size_t linked_with;
 
     struct BytecodeChunk *prev;     // Pointer to the previous chunk
     struct BytecodeChunk *next;     // Pointer to the next chunk
@@ -33,13 +34,17 @@ typedef struct {
     BytecodeChunk *current_chunk;   // Pointer to the current chunk
     size_t chunk_count;             // Number of chunks currently in use
     size_t next_chunk_id;           // Next chunk ID to assign
-    uint16_t unused_push_count;
+    BytecodeChunk* return_to;       // The chunk ID that will be resumed when we add a non-linked chunk
 } BytecodeBuffer;
 
 // Function prototypes
 BytecodeBuffer *bc_buffer_create();
 
 void bc_destroy_bytecode_buffer(BytecodeBuffer *buffer);
+
+// linkage utilities
+void bc_start_non_linked_chunk(BytecodeBuffer* buffer);
+BytecodeChunk * bc_end_non_linked_chunk(BytecodeBuffer* buffer);
 
 // Emit functions
 void bc_emit_byte(BytecodeBuffer *buffer, uint8_t byte);
@@ -105,7 +110,8 @@ void bc_write_byte(BytecodeChunk **chunk, uint8_t byte);
 void bc_write_ptr(BytecodeChunk **chunk, uintptr_t ptr);
 
 // Jumping between chunks
-void bc_set_chunk(BytecodeBuffer *buffer, size_t chunk_id, BytecodeChunk **chunk);
+void bc_set_chunk(BytecodeBuffer *buffer, size_t chunk_id);
+void bc_return_to(BytecodeBuffer* buffer);
 BytecodeChunk* bc_get_chunk_by_id(BytecodeBuffer* buffer, size_t chunk_id);
 
 // Checking if a chunk has code/free slots

@@ -11,6 +11,7 @@
 #include "value.h"
 #include "bytecode_buffer.h"
 #include "memory.h"
+#include "functions.h"
 
 #define uimplemented() fprintf(stderr, "%s is not implemented in %s at line %d", __FUNCTION__, __FILE_NAME__, __LINE__); exit(EXIT_FAILURE)
 
@@ -33,6 +34,7 @@ struct VM {
     Value registers[MAX_REGISTERS];
     Heap* heap;
     Stack* stack;
+    CallStack* call_stack;
     int sp;             // Stack pointer
     int sp_reset;
 };

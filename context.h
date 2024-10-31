@@ -14,6 +14,12 @@
 
 typedef struct Context Context;
 
+typedef struct FunctionEntry {
+    char *name;                 // Key: Function name
+    Function *function;       // Value: Pointer to Function Object
+    UT_hash_handle hh;          // Makes this structure hashable
+} FunctionEntry;
+
 struct Context {
     // code information
     char* source;
@@ -26,7 +32,7 @@ struct Context {
 
     ErrorList* error_list;
 
-    // holds all declared functions and variables in the program
+    // scope checking for the compilation phase
     SymbolTable* symbols;
 
     // total allocated memory
@@ -35,7 +41,13 @@ struct Context {
     VM* vm;
     // the compiled code from AST
     BytecodeBuffer* code;
+
+    // Functions map
+    FunctionEntry *functions;
 };
+
+bool register_function(Context *context, const char *name, Function* function_obj);
+Function *get_function(Context *context, const char *name);
 
 void ctx_init(Context* ctx, const char* source_code);
 bool ctx_is_initialized(Context *context);

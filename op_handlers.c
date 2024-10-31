@@ -539,22 +539,18 @@ inline bool handle_jmp_if_false(void) {
 // Handler for OP_CALL
 bool handle_call(void) {
     auto vm = get_vm();
-    if (vm->ip + sizeof(int32_t) > vm->size) {
-        fprintf(stderr, "Unexpected end of bytecode during CALL.\n");
-        return false;
+    // we ensured that the function name will be in the same chunk
+    // so...
+    char* name = vm_read_string(get_vm());
+    // get the function object
+    auto fn = get_function(get_vm()->context, name);
+
+    if (fn) {
+        push_call_frame(vm->call_stack, fn->chunk, vm->ip, vm->registers);
+        fn->return_addr.offset = vm->ip;
+        vm_jump_to_chunk(vm, fn->chunk->chunk_id);
     }
-    int32_t func_address;
-    memcpy(&func_address, &vm->bytecode[vm->ip], sizeof(int32_t));
-    vm->ip += sizeof(int32_t);
-    if (func_address < 0 || (size_t) func_address >= vm->size) {
-        fprintf(stderr, "CALL to invalid function address: %d\n", func_address);
-        return false;
-    }
-    // Push current ip as return address (stored as VAL_INT)
-    Value return_address = make_int(vm->ip);
-    vm_push(vm, return_address);
-    // Jump to function address
-    vm->ip = func_address;
+
     return true;
 }
 
@@ -565,8 +561,10 @@ bool handle_return(void) {
         fprintf(stderr, "Nothing on stack to return.\n");
         return false;
     }
-    Value ret = vm_pop(vm);
-    vm_push(vm, ret);
+
+    vm_jump_to_chunk(vm, 0);
+    SP = 27;
+    vm->ip++;
     return true;
     // Pop return address
     if (SP < 0) {
@@ -585,7 +583,7 @@ bool handle_return(void) {
     }
     vm->ip = return_address;
     // Optionally, vm_push the return value back onto the stack
-    vm_push(vm, ret);
+    vm_push(vm, make_null());
     return true;
 }
 
@@ -669,7 +667,8 @@ inline bool handle_load_var(void) {
     return true;
 }
 
-bool handle_enter_scope(VM *vm) {
+bool handle_enter_scope(void) {
+    auto vm = get_vm();
     if (vm->context->symbols) {
         enter_scope(vm->context->symbols);
     } else {
@@ -684,8 +683,8 @@ bool handle_exit_scope(void) {
     return true;
 }
 
-inline bool handle_pop(VM *vm) {
-    vm_pop(vm);
+inline bool handle_pop(void) {
+    vm_pop(get_vm());
     return true;
 }
 

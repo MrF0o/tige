@@ -43,7 +43,8 @@ add_executable(tige main.c
         op_handlers.c
         value.c
         object.c
-        functions.c)
+        functions.c
+        functions.h)
 
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")

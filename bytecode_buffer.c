@@ -80,6 +80,8 @@ bool bc_chunk_has_free_slots(BytecodeChunk *chunk, size_t size_needed) {
 BytecodeChunk *bc_add_new_chunk(BytecodeBuffer *buffer, size_t initial_capacity, bool link) {
     // TODO: change chunk is_linked accordingly
     BytecodeChunk *new_chunk = bc_create_bytecode_chunk(initial_capacity);
+    buffer->next_chunk_id = new_chunk->chunk_id + 1;
+    new_chunk->is_linked = link;
 
     new_chunk->prev = buffer->tail;
     if (buffer->tail) {
@@ -89,8 +91,13 @@ BytecodeChunk *bc_add_new_chunk(BytecodeBuffer *buffer, size_t initial_capacity,
     if (!buffer->head) {
         buffer->head = new_chunk;
     }
-    bc_write_byte(&buffer->current_chunk, (uint8_t) OP_JMP_ADR);
-    bc_write_ptr(&buffer->current_chunk, (uintptr_t) new_chunk);
+
+    if (new_chunk->is_linked && buffer->current_chunk->linked_with == new_chunk->chunk_id) {
+        bc_write_byte(&buffer->current_chunk, (uint8_t) OP_JMP_ADR);
+        bc_write_ptr(&buffer->current_chunk, (uintptr_t) new_chunk);
+        new_chunk->linked_with = buffer->next_chunk_id;
+    }
+
     buffer->current_chunk = new_chunk;
     buffer->chunk_count++;
 
@@ -187,10 +194,6 @@ void bc_emit_opcode_with_int(BytecodeBuffer *buffer, Opcode opcode, int64_t valu
     size_t total_size = 1 + sizeof(int64_t); // Opcode size + int64_t size
 
     bc_ensure_chunk_capacity(buffer, total_size);
-
-    if (opcode == OP_LOAD_CONST_INT) {
-        buffer->unused_push_count++;
-    }
 
     // Begin atomic emission
     bc_write_to_chunk(buffer, (uint8_t *) &opcode, 1);
@@ -303,11 +306,11 @@ char *bc_read_string(BytecodeChunk **chunk, size_t *offset) {
 }
 
 // Jumping between chunks
-void bc_set_chunk(BytecodeBuffer *buffer, size_t chunk_id, BytecodeChunk **chunk) {
+void bc_set_chunk(BytecodeBuffer *buffer, size_t chunk_id) {
     BytecodeChunk *current = buffer->head;
     while (current) {
         if (current->chunk_id == chunk_id) {
-            *chunk = current;
+            buffer->current_chunk = current;
             return;
         }
         current = current->next;
@@ -422,3 +425,34 @@ void bc_emit_opcode_with_uint16(BytecodeBuffer *buffer, Opcode opcode, uint16_t 
     bc_write_to_chunk(buffer, (uint8_t *)&opcode, 1);
     bc_write_to_chunk(buffer, (uint8_t *)&value, sizeof(uint16_t));
 }
+
+void bc_start_non_linked_chunk(BytecodeBuffer *buffer) {
+    auto linked_with = buffer->next_chunk_id + 1;
+    buffer->return_to = buffer->current_chunk;
+
+    // find to the first linked chunk
+    auto current = buffer->current_chunk;
+    while (current->prev) {
+        if (current->is_linked) {
+            buffer->current_chunk = current;
+            break;
+        }
+    }
+
+    // skip non linked chunk
+    buffer->current_chunk->linked_with = linked_with;
+
+    bc_add_new_chunk(buffer, INITIAL_CHUNK_CAPACITY, false);
+}
+
+BytecodeChunk * bc_end_non_linked_chunk(BytecodeBuffer *buffer) {
+    auto no_linked_chunk = buffer->current_chunk;
+    bc_return_to(buffer);
+
+    return no_linked_chunk;
+}
+
+void bc_return_to(BytecodeBuffer *buffer) {
+    buffer->current_chunk = buffer->return_to;
+}
+

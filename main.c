@@ -60,7 +60,8 @@ const char* opcode_to_mnemonic(Opcode opcode) {
         case OP_GREATER_THAN:        return "GT";
         case OP_LESS_EQUAL:          return "LTE";
         case OP_GREATER_EQUAL:       return "GTE";
-        case OP_JMP_IF_FALSE:        return "JNZ"; // Jump if Not Zero (false)
+        case OP_JMP_IF_FALSE:        return "JZ";  // Jump if Zero (false)
+        case OP_JMP_IF_TRUE:         return "JNZ"; // Jump if Not Zero (true)
         case OP_JMP:                 return "JMP";
         case OP_POP:                 return "POP";
         case OP_HALT:                return "HALT";
@@ -204,6 +205,7 @@ int main(int argc, char *argv[]) {
 
     Context context;
     ctx_init(&context, source);
+
 
     // configs:
     // ctx_set_strict_mode(&context, false);
