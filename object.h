@@ -24,7 +24,6 @@ struct TObjectMethod
 struct TObjectMetadata
 {
     bool gc_marked;
-
 };
 
 struct TObjectProperty {

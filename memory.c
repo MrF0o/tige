@@ -200,6 +200,7 @@ void print_memory_stats(void) {
     size_t current_allocated = heap->total_allocated - heap->total_freed;
     printf("Current Allocated: %zu bytes\n", current_allocated);
 }
+
 void* tige_alloc(Context* ctx, size_t size) {
     ctx->total_mem += size;
     return malloc(size);

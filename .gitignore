@@ -11,5 +11,7 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 cmake-build-debug
+cmake-build-release
+.idea
 code.tige
 test.tige

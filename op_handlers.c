@@ -553,8 +553,10 @@ void std_out(VM* vm)
     }
 
     const auto str = format.as_string;
-
     printf("%s\n", str);
+
+    // every function should return a value
+    vm_push(vm, make_null());
 }
 
 // Handler for OP_CALL
