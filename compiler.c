@@ -102,6 +102,11 @@ void compile_fn_decl(BytecodeBuffer *buffer, ASTNode *node) {
     }
     fn_sym->data.function.arg_e = gcontext->symbols->current_scope->variable_index_counter;
 
+    // load the arguments
+    for (uint16_t i = fn_sym->data.function.arg_b; i < fn_sym->data.function.arg_e; ++i) {
+        bc_emit_opcode_with_uint16(buffer, OP_LOAD_VAR, i);
+    }
+
     // do not link function chunk since it's only accessible by calling/jumping to it
     bc_start_non_linked_chunk(buffer);
     compile_node(node->fn_decl_stmt.body, buffer);
@@ -498,11 +503,6 @@ void compile_call(BytecodeBuffer *buffer, ASTNode *node) {
         // TODO: proper error handling
         fprintf(stderr, "Error: '%s' expects %lld argument(s) although %lld provided", fn->name, arity, argc);
         exit(EXIT_FAILURE);
-    }
-
-    // load the arguments
-    for (uint16_t i = fn->data.function.arg_b; i <= fn->data.function.arg_e; ++i) {
-        bc_emit_opcode_with_uint16(buffer, OP_LOAD_VAR, i);
     }
 
     for (size_t i = 0; i < argc; ++i) {

@@ -62,12 +62,16 @@ bool push_call_frame(CallStack* stack, BytecodeChunk* chunk, size_t ip, Value* r
 // Pop the top call frame from the stack
 bool pop_call_frame(CallStack* stack, BytecodeChunk** chunk, size_t* ip, Value** registers) {
     if (!stack->top) {
-        fprintf(stderr, "Call stack underflow!\n");
+        fprintf(stderr, "Error: Can't use return outside of a function.\n");
         return false;
     }
     CallFrame* frame = stack->top;
     stack->top = frame->previous;
-    *chunk = frame->chunk;
+
+    if (chunk) {
+        *chunk = frame->chunk;
+    }
+
     *ip = frame->ip;
     *registers = frame->registers;
     vm_free(frame);

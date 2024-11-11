@@ -546,9 +546,10 @@ bool handle_call(void) {
     auto fn = get_function(get_vm()->context, name);
 
     if (fn) {
-        push_call_frame(vm->call_stack, fn->chunk, vm->ip, vm->registers);
+        push_call_frame(vm->call_stack, vm->chunk, vm->ip, vm->registers);
         fn->return_addr.offset = vm->ip;
-        vm_jump_to_chunk(vm, fn->chunk->chunk_id);
+        vm->chunk = fn->chunk;
+        vm->ip = 0;
     }
 
     return true;
@@ -562,9 +563,21 @@ bool handle_return(void) {
         return false;
     }
 
-    vm_jump_to_chunk(vm, 0);
-    SP = 27;
-    vm->ip++;
+    BytecodeChunk* previous_chunk = NULL;
+    size_t previous_ip = 0;
+    Value* previous_registers = NULL;
+
+    if (!pop_call_frame(vm->call_stack, &previous_chunk, &previous_ip, &previous_registers)) {
+        fprintf(stderr, "Call stack underflow on OP_RETURN.\n");
+        return false;
+    }
+
+    // Restore the previous execution context
+    vm->chunk = previous_chunk;
+    vm->ip = previous_ip;
+    memcpy(vm->registers, previous_registers, MAX_REGISTERS);
+    // vm_jump_to_chunk(vm, 0);
+    // SP = 27;
     return true;
     // Pop return address
     if (SP < 0) {
