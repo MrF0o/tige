@@ -153,7 +153,7 @@ Value vm_execute(VM *vm) {
         }
     }
 
-    if (vm->sp >= 0) {
+    if (SP >= 0) {
         return vm_pop(vm);
     }
 
