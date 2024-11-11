@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "object.h"
+
 // Create a new function
 Function* create_function() {
     auto fn = (Function*)vm_malloc(sizeof(Function));
@@ -13,6 +15,8 @@ Function* create_function() {
         fprintf(stderr, "Failed to allocate memory for function");
         exit(EXIT_FAILURE);
     }
+
+    object_init((TObject*)fn);
 
     // we will need to fill up these info whenever we create a new function
     fn->chunk = nullptr;

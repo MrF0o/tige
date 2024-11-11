@@ -13,7 +13,7 @@
 // Handler for OP_LOAD_CONST
 inline bool handle_load_const_int(void) {
     auto vm = get_vm();
-    if (vm->ip + sizeof(int32_t) > vm->chunk->size) {
+    if (vm->ip + sizeof(int64_t) > vm->chunk->size) {
         fprintf(stderr, "Unexpected end of chunk during LOAD_CONST.\n");
         return false;
     }
@@ -27,8 +27,13 @@ inline bool handle_load_const_int(void) {
 
 // Handler for OP_LOAD_STRING
 inline bool handle_load_string(void) {
-    // TODO
-    uimplemented();
+    const auto vm = get_vm();
+    const auto str = vm_read_string(vm);
+    const Value val = make_string(str->chars);
+    vm_push(vm, val);
+
+    // TODO: GC String
+
     return true;
 }
 
@@ -536,14 +541,36 @@ inline bool handle_jmp_if_false(void) {
     return true;
 }
 
+void std_out(VM* vm)
+{
+    const auto format = vm_pop(vm);
+
+    if (format.type != VAL_STRING)
+    {
+        // TODO: proper error reporting
+        fprintf(stderr, "First argument of print is the format string.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    const auto str = format.as_string;
+
+    printf("%s\n", str);
+}
+
 // Handler for OP_CALL
 bool handle_call(void) {
-    auto vm = get_vm();
+    const auto vm = get_vm();
     // we ensured that the function name will be in the same chunk
     // so...
-    char* name = vm_read_string(get_vm());
+    const char* name = vm_read_fn_name(get_vm());
     // get the function object
-    auto fn = get_function(get_vm()->context, name);
+    const auto fn = get_function(get_vm()->context, name);
+
+    if (strcmp(fn->name, "print") == 0)
+    {
+        std_out(vm);
+        return true;
+    }
 
     if (fn) {
         push_call_frame(vm->call_stack, fn->chunk, vm->ip, vm->registers);
@@ -612,19 +639,7 @@ bool handle_ternary(void) {
 
 // Handler for OP_HALT
 bool handle_halt(void) {
-    auto vm = get_vm();
-    if (SP < 0) {
-        fprintf(stderr, "Nothing on stack to return.\n");
-        return false;
-    }
-    Value ret = vm_pop(vm);
-    if (ret.type == VAL_INT) {
-        printf("VM Halt with exit code: %lld\n", ret.as_integer);
-    } else {
-        fprintf(stderr, "HALT expects an integer on the stack.\n");
-        return false;
-    }
-    return false; // Unreachable
+    return false;
 }
 
 // Handler for OP_NOP

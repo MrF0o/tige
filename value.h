@@ -17,6 +17,7 @@ typedef enum {
     VAL_STRING,
     VAL_OBJECT,
     VAL_PTR,
+    VAL_NULL,
 } ValueType;
 
 typedef struct {
@@ -34,7 +35,7 @@ typedef struct {
 Value make_int(int64_t x);
 Value make_float(double x);
 Value make_bool(bool x);
-Value make_string(char* x);
+Value make_string(const char* x);
 Value make_null();
 
 void print_value(Value value);

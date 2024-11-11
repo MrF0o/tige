@@ -218,6 +218,12 @@ int main(int argc, char *argv[]) {
     // ctx_set_vm_debug(&context, true);
 
     if (ctx_is_initialized(&context)) {
+        // add the print function
+        auto print_fn = create_function();
+        print_fn->arity = 1;
+        print_fn->name = "print";
+        register_function(&context, "print", print_fn);
+
         ctx_start_parsing(&context);
 
         if (ctx_check_errors(&context)) {

@@ -5,8 +5,9 @@
 #ifndef TIGE_AST_H
 #define TIGE_AST_H
 
-#include <stdbool.h>
 #include "lexer.h"
+#include "object.h"
+
 
 typedef enum {
     AST_BINARY_OP,
@@ -33,7 +34,7 @@ typedef enum {
 } ASTNodeType;
 
 typedef union {
-    char *str_value;        // For strings, identifiers
+    TString *str_value;        // For strings, identifiers
     int64_t int_value;    // For integers
     double float_value;     // For floats
     bool bool_value;        // For booleans
@@ -53,6 +54,7 @@ struct ASTNode {
 
     union {
         ASTValue *value;
+        TObject* object;
 
         // Binary operation
         struct {

@@ -7,16 +7,16 @@
 
 #include <stdlib.h>
 #include <memory.h>
-#include "object.h"
 
 typedef struct Context Context;
 
 typedef struct Heap Heap;
 typedef struct HeapBlock HeapBlock;
 typedef struct Stack Stack;
+typedef struct TObject TObject;
 
 struct HeapBlock {
-    Object *object;
+    TObject *object;
     size_t size;
     HeapBlock *next;
 };

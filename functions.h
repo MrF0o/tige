@@ -7,17 +7,17 @@
 
 #include <stdint.h>
 #include "value.h"
-#include "object.h"
 #include "bytecode_buffer.h"
 #include "memory.h"
 #include "uthash.h"
 
-
+typedef struct TObjectMetadata TObjectMetadata;
+typedef struct TObjectProperty TObjectProperty;
 typedef struct Function Function;
 
 struct Function {
-    ObjectMetadata* metadata;
-    ObjectProperty* props;
+    TObjectMetadata* metadata;
+    TObjectProperty* props;
     BytecodeChunk* chunk;
     char* name;
     Stack* stack;

@@ -22,8 +22,8 @@ void ctx_init(Context *ctx, const char *source_code) {
     parser_init(&ctx->parser, ctx);
 
     // as soon as we encounter a block, this will be initialized
-    ctx->symbols = nullptr;
-    ctx->vm = nullptr;
+    ctx->symbols = create_symbol_table();
+    ctx->vm = create_vm(ctx);
 }
 
 void ctx_free(Context *ctx) {
@@ -105,7 +105,6 @@ bool ctx_is_initialized(Context *context) {
 
 bool register_function(Context *context, const char *name, Function *function_obj) {
     if (!context || !name || !function_obj) {
-        fprintf(stderr, "Invalid arguments to register_function.\n");
         return false;
     }
 
@@ -125,6 +124,8 @@ bool register_function(Context *context, const char *name, Function *function_ob
     }
 
     entry->function = function_obj;
+    // add the symbol if it's not already there
+    add_function_symbol(context->symbols, name, function_obj->arity);
 
     // Add the entry to the hash map
     HASH_ADD_KEYPTR(hh, context->functions, entry->name, strlen(entry->name), entry);
@@ -143,10 +144,9 @@ Function *get_function(Context *context, const char *name) {
 
     if (entry) {
         return entry->function;
-    } else {
-        fprintf(stderr, "Function '%s' not found in the context.\n", name);
-        return nullptr;
     }
+    fprintf(stderr, "Function '%s' not found in the context.\n", name);
+    return nullptr;
 }
 
 bool remove_function(Context *context, const char *name) {

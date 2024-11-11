@@ -4,7 +4,7 @@
 
 #ifndef TIGE_SYMBOL_H
 #define TIGE_SYMBOL_H
-#include <stdbool.h>
+#include <stddef.h>
 #include "value.h"
 
 typedef enum {

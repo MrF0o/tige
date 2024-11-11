@@ -6,6 +6,7 @@
 #define TIGE_SYMBOL_TABLE_H
 
 #include "symbol.h"
+#include <stddef.h>
 
 #define HASH_TABLE_SIZE 256
 

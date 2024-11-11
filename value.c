@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "value.h"
 
+#include <string.h>
+
 Value make_int(int64_t x) {
     Value value;
     value.type = VAL_INT;
@@ -28,13 +30,16 @@ Value make_float(double x) {
 
 Value make_null() {
     Value value;
-    value.type = VAL_FLOAT;
+    value.type = VAL_NULL;
     value.as_ptr = 0x00;
     return value;
 }
 
-Value make_string(char *x) {
-    return make_null();
+Value make_string(const char *x) {
+    Value value;
+    value.type = VAL_STRING;
+    value.as_string = strdup(x); // TODO: free this
+    return value;
 }
 
 void print_value(Value value) {

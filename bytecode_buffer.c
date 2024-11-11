@@ -1,15 +1,14 @@
 #include "bytecode_buffer.h"
-#include <stddef.h>
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>
 #include <limits.h>
 
 // Create a new bytecode chunk (doubly linked list node)
 BytecodeChunk *bc_create_bytecode_chunk(size_t initial_capacity) {
     static size_t global_chunk_id = 0;
 
-    BytecodeChunk *chunk = (BytecodeChunk *) malloc(sizeof(BytecodeChunk));
+    const auto chunk = (BytecodeChunk *) malloc(sizeof(BytecodeChunk));
     chunk->size = 0;
     chunk->capacity = initial_capacity;
     chunk->bytecode = (uint8_t *) malloc(chunk->capacity);
@@ -140,7 +139,7 @@ void bc_emit_uint(BytecodeBuffer *buffer, uint64_t value) {
 }
 
 void bc_emit_float(BytecodeBuffer *buffer, double value) {
-    static_assert(sizeof(double) * CHAR_BIT == 64, "Unexpected double size");
+    assert(sizeof(double) * CHAR_BIT == 64);
     bc_ensure_chunk_capacity(buffer, sizeof(double));
     bc_write_to_chunk(buffer, (uint8_t *) &value, sizeof(double));
 }
@@ -180,8 +179,8 @@ void bc_emit_string(BytecodeBuffer *buffer, const char *string) {
 // Combined emit functions to ensure atomic emission
 
 void bc_emit_opcode_with_string(BytecodeBuffer *buffer, Opcode opcode, const char *string) {
-    size_t len = strlen(string) + 1; // Include null terminator
-    size_t total_size = 1 + len;     // Opcode size + string size
+    const size_t len = strlen(string) + 1; // Include null terminator
+    const size_t total_size = 1 + len;     // Opcode size + string size
 
     bc_ensure_chunk_capacity(buffer, total_size);
 
@@ -190,8 +189,16 @@ void bc_emit_opcode_with_string(BytecodeBuffer *buffer, Opcode opcode, const cha
     bc_write_to_chunk(buffer, (const uint8_t *) string, len);
 }
 
+void bc_emit_opcode_with_string_obj(BytecodeBuffer *buffer, Opcode opcode, TString *string) {
+    constexpr size_t size = sizeof(TString*);
+    bc_ensure_chunk_capacity(buffer, size + 1);
+
+    bc_write_to_chunk(buffer, (uint8_t *) &opcode, 1);
+    bc_write_ptr(&buffer->current_chunk, (uintptr_t) string);
+}
+
 void bc_emit_opcode_with_int(BytecodeBuffer *buffer, Opcode opcode, int64_t value) {
-    size_t total_size = 1 + sizeof(int64_t); // Opcode size + int64_t size
+    constexpr size_t total_size = 1 + sizeof(int64_t); // Opcode size + int64_t size
 
     bc_ensure_chunk_capacity(buffer, total_size);
 
@@ -427,11 +434,11 @@ void bc_emit_opcode_with_uint16(BytecodeBuffer *buffer, Opcode opcode, uint16_t 
 }
 
 void bc_start_non_linked_chunk(BytecodeBuffer *buffer) {
-    auto linked_with = buffer->next_chunk_id + 1;
+    const auto linked_with = buffer->next_chunk_id + 1;
     buffer->return_to = buffer->current_chunk;
 
     // find to the first linked chunk
-    auto current = buffer->current_chunk;
+    const auto current = buffer->current_chunk;
     while (current->prev) {
         if (current->is_linked) {
             buffer->current_chunk = current;

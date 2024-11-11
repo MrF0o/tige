@@ -520,7 +520,7 @@ ASTNode *parse_call_expression(Parser *parser, ASTNode *callee) {
 }
 
 ASTNode *parse_primary_expression(Parser *parser) {
-    ASTNode *node = nullptr;
+    ASTNode *node;
 
     // TODO: merge integer and float into one AST_NUMBER node
     if (MATCH(parser, TOKEN_INTEGER)) {

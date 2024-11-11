@@ -67,7 +67,7 @@ static OpcodeHandler opcode_handlers[256] = {
         [OP_INC_REG]         = handle_inc_reg,
 
         [OP_HALT]            = handle_halt,            // 0xFF
-        // All other opcodes remain NULL by default
+        // All other opcodes remain nullptr by default
 };
 
 // Initialize the VM
@@ -160,14 +160,15 @@ Value vm_execute(VM *vm) {
     return make_null();
 }
 
-char *vm_read_string(VM *vm) {
-    if (vm == NULL) {
-        fprintf(stderr, "Error: vm_read_string received NULL VM pointer.\n");
+// read a TString object pointer from the bytecode
+TString *vm_read_string(VM *vm) {
+    if (vm == nullptr) {
+        fprintf(stderr, "Error: vm_read_string received nullptr VM pointer.\n");
         return nullptr;
     }
 
-    if (vm->chunk->bytecode == NULL) {
-        fprintf(stderr, "Error: vm_read_string received NULL bytecode pointer.\n");
+    if (vm->chunk->bytecode == nullptr) {
+        fprintf(stderr, "Error: vm_read_string received nullptr bytecode pointer.\n");
         return nullptr;
     }
 
@@ -177,28 +178,50 @@ char *vm_read_string(VM *vm) {
         exit(-1);
     }
 
-    size_t remaining = vm->chunk->size - vm->ip;
+    const auto str = (TString*)vm_read_ptr(vm);
 
-    void *null_pos = memchr(vm->chunk->bytecode + vm->ip, '\0', remaining);
-    if (null_pos == NULL) {
-        fprintf(stderr, "Error: Null terminator not found for string starting at position %zu.\n", vm->ip);
-        exit(-1);
-    }
 
-    size_t str_length = (uint8_t *) null_pos - (vm->chunk->bytecode + vm->ip);
+    return str;
+}
 
-    char *string = (char *) malloc(str_length + 1);
-    if (string == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for string at position %zu.\n", vm->ip);
+// read a plain string from the current bytecode location
+inline const char* vm_read_fn_name(VM* vm)
+{
+    if (vm == nullptr) {
+        fprintf(stderr, "Error: vm_read_fn_name received nullptr VM pointer.\n");
         return nullptr;
     }
 
-    memcpy(string, vm->chunk->bytecode + vm->ip, str_length);
+    if (vm->chunk == nullptr || vm->chunk->bytecode == nullptr) {
+        fprintf(stderr, "Error: vm_read_fn_name received nullptr chunk or bytecode pointer.\n");
+        return nullptr;
+    }
 
-    string[str_length] = '\0';
+    if (vm->ip >= vm->chunk->size) {
+        fprintf(stderr, "Error: Instruction pointer (%zu) out of bounds of the current chunk while reading function name.\n",
+                vm->ip);
+        exit(EXIT_FAILURE);
+    }
+
+    size_t remaining = vm->chunk->size - vm->ip;
+
+    // Find the null terminator within the remaining bytes
+    void* null_pos = memchr(vm->chunk->bytecode + vm->ip, '\0', remaining);
+    if (null_pos == nullptr) {
+        fprintf(stderr, "Error: Null terminator not found for function name starting at position %zu.\n", vm->ip);
+        exit(EXIT_FAILURE);
+    }
+
+    // Calculate the length of the string
+    size_t str_length = (uint8_t*)null_pos - (vm->chunk->bytecode + vm->ip);
+
+    // Get the pointer to the function name in the bytecode
+    const char* name = (const char*)(vm->chunk->bytecode + vm->ip);
+
+    // Move the instruction pointer past the string and its null terminator
     vm->ip += str_length + 1;
 
-    return string;
+    return name;
 }
 
 uintptr_t vm_read_ptr(VM *vm) {
@@ -235,6 +258,6 @@ uint16_t vm_read_uint16(VM *vm) {
     return value;
 }
 
-inline VM *get_vm(void) {
+inline VM* get_vm(void) {
     return g_vm;
 }

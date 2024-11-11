@@ -3,10 +3,13 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include "opcode.h"
+#include "tige_string.h"
 
 #define INITIAL_CHUNK_CAPACITY 1024
+
+typedef struct TObject TObject;
+typedef struct TString TString;
 
 // Structure to hold a single bytecode chunk (doubly linked list)
 typedef struct BytecodeChunk {
@@ -62,7 +65,7 @@ void bc_emit_opcode(BytecodeBuffer *buffer, Opcode opcode);
 
 // Combined emit functions to ensure atomic emission
 void bc_emit_opcode_with_string(BytecodeBuffer *buffer, Opcode opcode, const char *string);
-
+void bc_emit_opcode_with_string_obj(BytecodeBuffer *buffer, Opcode opcode, TString *string);
 void bc_emit_opcode_with_int(BytecodeBuffer *buffer, Opcode opcode, int64_t value);
 
 void bc_emit_opcode_with_uint(BytecodeBuffer *buffer, Opcode opcode, uint64_t value);

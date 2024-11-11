@@ -6,7 +6,6 @@
 #include "vm.h"
 #include "functions.h"
 #include <stdio.h>
-#include <memory.h>
 #include <stdlib.h>
 
 typedef uint16_t Reg;
@@ -97,7 +96,7 @@ void compile_fn_decl(BytecodeBuffer *buffer, ASTNode *node) {
     fn_sym->data.function.arg_b = gcontext->symbols->current_scope->variable_index_counter;
     // define all params
     for (size_t i = 0; i < argc; ++i) {
-        auto arg_name = arg_list->nodes[i]->value->str_value;
+        auto arg_name = arg_list->nodes[i]->value->str_value->chars;
         add_symbol(gcontext->symbols, arg_name, SYMBOL_VARIABLE);
     }
     fn_sym->data.function.arg_e = gcontext->symbols->current_scope->variable_index_counter;
@@ -158,26 +157,23 @@ void compile_bool(BytecodeBuffer *buffer, ASTNode *node) {
 
 /// Compile String AST Node
 void compile_string(BytecodeBuffer *buffer, ASTNode *node) {
-    // Emit LOAD_STRING with a pointer to the string on the heap
-    // Allocate the string on the heap and get its address
-    // TODO: Implement string allocation and heap integration
-    fprintf(stderr, "String literals not implemented in compiler.\n");
-    exit(1);
+    bc_emit_opcode_with_string_obj(buffer, OP_LOAD_STRING, node->value->str_value);
 }
 
 /// Compile Symbol AST Node
 void compile_symbol(BytecodeBuffer *buffer, ASTNode *node) {
-    Symbol *sym = lookup_symbol(gcontext->symbols, node->value->str_value);
+    auto const name = node->value->str_value;
+    const Symbol *sym = lookup_symbol(gcontext->symbols, name->chars);
 
     if (sym) {
         if (sym->type == SYMBOL_VARIABLE) {
             bc_emit_opcode_with_uint16(buffer, OP_LOAD_VAR, sym->data.variable.index);
         } else {
-            fprintf(stderr, "Error: '%s' is not a variable\n", node->value->str_value);
+            fprintf(stderr, "Error: '%s' is not a variable\n", name->chars);
             exit(EXIT_FAILURE);
         }
     } else {
-        fprintf(stderr, "Error: '%s' is not defined\n", node->value->str_value);
+        fprintf(stderr, "Error: '%s' is not defined\n", name->chars);
         exit(EXIT_FAILURE);
     }
 }
@@ -316,12 +312,12 @@ void compile_assign(BytecodeBuffer *buffer, ASTNode *node) {
 
     if (AST_IS_SYMBOL(node->assignment_expr.left)) {
         auto var_name = node->assignment_expr.left->value->str_value;
-        Symbol *symbol = lookup_symbol(gcontext->symbols, var_name);
+        Symbol *symbol = lookup_symbol(gcontext->symbols, var_name->chars);
 
         if (symbol) {
             bc_emit_opcode_with_uint16(buffer, OP_STORE_VAR, symbol->data.variable.index);
         } else {
-            fprintf(stderr, "Error: Assignment to an undeclared variable '%s'", var_name);
+            fprintf(stderr, "Error: Assignment to an undeclared variable '%s'", var_name->chars);
         }
     }
 }
@@ -485,10 +481,11 @@ void compile_range(BytecodeBuffer *buffer, ASTNode *node) {
 
 /// Compile Call AST Node
 void compile_call(BytecodeBuffer *buffer, ASTNode *node) {
-    Symbol* fn = lookup_symbol(gcontext->symbols, node->call_expr.callee->value->str_value);
+    auto const callee = node->call_expr.callee->value->str_value;
+    Symbol* fn = lookup_symbol(gcontext->symbols, callee->chars);
 
     if (!fn) {
-        fprintf(stderr, "Error: Call to an undefined function '%s'", node->call_expr.callee->value->str_value);
+        fprintf(stderr, "Error: Call to an undefined function '%s'", callee->chars);
         exit(EXIT_FAILURE);
     }
 
@@ -496,7 +493,7 @@ void compile_call(BytecodeBuffer *buffer, ASTNode *node) {
     auto arity = fn->data.function.arity;
     if (argc != arity) {
         // TODO: proper error handling
-        fprintf(stderr, "Error: '%s' expects %lld argument(s) although %lld provided", fn->name, arity, argc);
+        fprintf(stderr, "Error: '%s' expects %lu argument(s) although %lu provided", fn->name, arity, argc);
         exit(EXIT_FAILURE);
     }
 

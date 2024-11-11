@@ -52,7 +52,8 @@ void vm_jump_to_chunk_adr(VM *vm, uintptr_t chunk_ptr);
 
 // memory reads
 uint8_t vm_read_byte(VM *vm);
-char *vm_read_string(VM *vm);
+TString *vm_read_string(VM *vm);
+const char* vm_read_fn_name(VM* vm);
 uint64_t vm_read_uint(VM *vm);
 uint16_t vm_read_uint16(VM *vm);
 int64_t vm_read_int(VM *vm);
